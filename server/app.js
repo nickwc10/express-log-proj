@@ -24,15 +24,13 @@ app.get('/logs', (req, res) => {
     const lines = logData.trim().split('\n').filter(line => line);
     const logs = lines.map(line => {
         const values = line.split(',');
-        // The last 5 fields are guaranteed not to have commas.
-        // The first field is the user agent and it might contain commas.
         return {
-            'Agent': values.slice(0, values.length - 5).join(','),
-            'Time': values[values.length - 5],
-            'Method': values[values.length - 4],
-            'Resource': values[values.length - 3],
-            'Version': values[values.length - 2],
-            'Status': values[values.length - 1]
+            'Agent': values[0],
+            'Time': values[1],
+            'Method': values[2],
+            'Resource': values[3],
+            'Version': values[4],
+            'Status': values[5]
         };
     });
     res.json(logs);
