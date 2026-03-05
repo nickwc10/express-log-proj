@@ -5,11 +5,26 @@ const app = express();
 
 app.use((req, res, next) => {
 // write your logging code here
-let logFile = fs.createWriteStream('./log.csv', {flags: 'a'}); //use {flags: 'w'} to open in write mode
-//Log agent, time, method, resource, version, and status to the csv file
-logFile.write(`${req.headers['user-agent']},${new Date().toISOString()},${req.method},${req.url},${req.httpVersion},${res.statusCode}\n`); //write log data to the file
-logFile.end();
-next();
+    res.on('finish', () => {
+        const logFile = './log.csv';
+        const logLine = `${req.headers['user-agent']},${new Date().toISOString()},${req.method},${req.url},HTTP/${req.httpVersion},${res.statusCode}\n`;
+
+        if (fs.existsSync(logFile)) {
+            const lines = fs.readFileSync(logFile, 'utf-8').split('\n').filter(line => line !== '');
+            if (lines.length >= 20) {
+                const files = fs.readdirSync('.').filter(f => f.startsWith('log') && f.endsWith('.csv') && f !== 'log.csv');
+                const indices = files.map(f => parseInt(f.replace('log', '').replace('.csv', '')))
+                                     .filter(n => !isNaN(n))
+                                     .sort((a, b) => b - a);
+                for (const idx of indices) {
+                    fs.renameSync(`./log${idx}.csv`, `./log${idx + 1}.csv`);
+                }
+                fs.renameSync(logFile, './log1.csv');
+            }
+        }
+        fs.appendFileSync(logFile, logLine);
+    });
+    next();
 });
 
 app.get('/', (req, res) => {
@@ -34,6 +49,10 @@ app.get('/logs', (req, res) => {
         };
     });
     res.json(logs);
+});
+
+app.get('*', (req, res) => {
+    res.status(404).send('Not found');
 });
 
 module.exports = app;
